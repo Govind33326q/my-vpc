@@ -1,0 +1,48 @@
+name: NGINX EC2 Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+
+jobs:
+  # ---------------------------------------------------
+  # JOB 1: Deploy to Dev Server (Dev EC2)
+  # ---------------------------------------------------
+  deploy-dev-environment:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: [self-hosted, dev-agent]
+    steps:
+      - name: Step 1 - Download code from GitHub
+        uses: actions/checkout@v4
+
+      - name: Step 2 - Sync files using Rsync
+        run: |
+          echo "Starting file transfer to the Development Server..."
+          sudo rsync -avz --delete --exclude '.git' --exclude '.github' ./ /var/www/html/
+
+      - name: Step 3 - Restart NGINX
+        run: |
+          sudo systemctl restart nginx
+          echo "Development deployment is complete!"
+
+  # ---------------------------------------------------
+  # JOB 2: Deploy to Production Server (Prod EC2)
+  # ---------------------------------------------------
+  deploy-prod-environment:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, main-agent]
+    steps:
+      - name: Step 1 - Download code from GitHub
+        uses: actions/checkout@v4
+
+      - name: Step 2 - Sync files using Rsync
+        run: |
+          echo "Starting file transfer to the Production Server..."
+          sudo rsync -avz --delete --exclude '.git' --exclude '.github' ./ /var/www/html/
+
+      - name: Step 3 - Restart NGINX
+        run: |
+          sudo systemctl restart nginx
+          echo "Production deployment is complete!"
